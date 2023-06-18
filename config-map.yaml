@@ -17,6 +17,49 @@ data:
           severity: Warning
         annotations:
           summary: High Memory Usage
+  statemetrics.yaml: |-
+    groups:
+    - name: appstatus.rules
+      rules:          
+      - alert: PodNotReady
+        expr: kube_pod_labels and on(pod, namespace) (kube_pod_status_ready{condition="true"} == 0 and on (pod, namespace)  kube_pod_container_status_terminated_reason{reason ="Completed"} == 0)
+        for: 1m
+        labels:
+          severity: critical
+          instance: "{{ $labels.pod }}"
+          department: "{{ $labels.label_department }}"
+        annotations:
+          summary: "{{ $labels.pod }} not ready"
+          description: "{{ $labels.pod }} pod down in {{ $labels.namespace }} namespace."
+      - alert: ApplicationNotAccessable
+        expr: up{job="health-.*"}==0
+        for: 1m
+        labels:
+          severity: critical
+          instance: "{{ $labels.pod }}"
+          department: "{{ $labels.label_department }}"
+        annotations:
+          summary: "{{ $labels.pod }} not ready"
+          description: "{{ $labels.pod }} Health is not accessable {{ $labels.namespace }} namespace."
+      - alert: ApplicationDown
+        expr: kube_deployment_labels and on(deployment, namespace) (kube_deployment_status_replicas_available == 0)
+        labels:
+          severity: critical
+          instance: "{{ $labels.deployment }}"
+          department: "{{ $labels.label_department }}"
+        annotations:
+          summary: "{{ $labels.deployment }} down"
+          description: "{{ $labels.deployment }} down in {{ $labels.namespace }} namespace."
+          
+      - alert: ReplicasScaledDown
+        expr: kube_deployment_spec_replicas == 0
+        labels:
+          severity: warning
+          instance: "{{ $labels.deployment }}"
+          department: "{{ $labels.label_department }}"
+        annotations:
+          summary: "{{ $labels.deployment }} scaled down"
+          description: "Replicas scaled down for {{ $labels.deployment }}"
   prometheus.yml: |-
     global:
       scrape_interval: 5s
